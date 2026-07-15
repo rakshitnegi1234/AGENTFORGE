@@ -3,6 +3,8 @@ import dotenv from "dotenv"
 import proxy from "express-http-proxy";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import protect from "./Middleware/auth.middleware.js";
+import { getCurrentUser } from "./Controller/user.controller.js";
 dotenv.config();
 
 // GATEWAY  pkg express-http-proxy
@@ -17,7 +19,9 @@ app.use(cors({
 }));
 
 
-app.use("/auth", proxy(process.env.AUTH_SERVICE));
+
+app.use("/api/v1/youridentity" , protect, getCurrentUser );
+app.use("/api/v1/auth", proxy(process.env.AUTH_SERVICE));
 
 app.listen(port,()=>
 {
