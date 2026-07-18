@@ -6,13 +6,16 @@ import cookieParser from "cookie-parser";
 import protect from "./Middleware/auth.middleware.js";
 import { getCurrentUser } from "./Controller/user.controller.js";
 import proxyWithHeader from "./utils/proxyWithHeader.js";
+import morgan from "morgan";
 dotenv.config();
 
 // GATEWAY  pkg express-http-proxy
 // express-http-proxy forwards the request to the target service, then forwards that service’s response back to the original browser request automatically.
+// MORGAN PKG is imp so that we could see all the request coming to gateway 
 
 const port = process.env.PORT;
 const app = express();
+app.use(morgan("dev"));  // we need to give format 
 app.use(cookieParser());
 app.use(cors({
    origin:process.env.FRONTEND_URL,

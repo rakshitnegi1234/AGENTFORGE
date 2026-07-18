@@ -8,7 +8,7 @@ const getCurrentUser = async () =>
     return data; 
     
    }catch(err){
-
+    console.log(err);
      return null;
    }
 }

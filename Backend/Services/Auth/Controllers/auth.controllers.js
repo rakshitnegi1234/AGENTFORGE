@@ -60,11 +60,18 @@ export const logout = async (req,res) =>
 {
    try{
 
-    const sessionId = req.cookies.session;
-    await redis.del(`session-${sessionId}`);
+    const sessionId = req.cookies?.session;
 
+    if(sessionId) {
+      await redis.del(`session-${sessionId}`);
+    }
 
-    res.clearCookie("session");
+    res.clearCookie("session", {
+      httpOnly: true,
+      secure: false,
+      sameSite: "strict",
+      path: "/"
+    });
 
     return res.status(200).json({"message" : "logout Successfully"});
 
