@@ -2,6 +2,16 @@
 
 An AI chat application built with the MERN stack, microservices, LangGraph, Groq, Tavily, Redis, and Firebase authentication. The app supports authenticated conversations, persistent chat history, automatic/manual agent routing, web search grounded responses, and a frontend artifact panel for generated code previews.
 
+## Highlights
+
+- Multi-service backend with Gateway, Auth, Chat, and Agent services
+- Firebase Google login with Redis-backed sessions
+- MongoDB-backed users, conversations, and messages
+- LangGraph workflow with `auto`, `chat`, `coding`, and `search` agents
+- Tavily-powered web search for current/contextual answers
+- Generated frontend artifacts with live iframe preview and code tabs
+- Responsive React UI with desktop sidebar, mobile drawer, and artifact slide-over
+
 ## Features
 
 - Google sign-in with Firebase Authentication
@@ -16,6 +26,66 @@ An AI chat application built with the MERN stack, microservices, LangGraph, Groq
 - React artifact panel with Code and Preview tabs
 - Previewable HTML artifacts in a sandboxed iframe
 - Responsive dark UI built with React, Redux Toolkit, Tailwind CSS, and Lucide icons
+
+## Quick Start
+
+```bash
+git clone https://github.com/rakshitnegi1234/AGENTFORGE.git
+cd AGENTFORGE
+```
+
+Install dependencies:
+
+```bash
+cd Backend && npm install
+cd Gateway && npm install
+cd ../Services/Auth && npm install
+cd ../Chat && npm install
+cd ../Agent && npm install
+cd ../../../Frontend && npm install
+```
+
+Create the `.env` files described below, then start Redis and run each service:
+
+```bash
+cd Backend
+docker compose up -d
+```
+
+Run these in separate terminals from the project root:
+
+```bash
+# Terminal 1
+cd Backend/Services/Auth
+npm run dev
+
+# Terminal 2
+cd Backend/Services/Chat
+npm run dev
+
+# Terminal 3
+cd Backend/Services/Agent
+npm run dev
+
+# Terminal 4
+cd Backend/Gateway
+npm run dev
+
+# Terminal 5
+cd Frontend
+npm run dev
+```
+
+Default local URLs:
+
+| Service | URL |
+| --- | --- |
+| Frontend | `http://localhost:5173` |
+| Gateway | `http://localhost:8000` |
+| Auth Service | `http://localhost:8001` |
+| Chat Service | `http://localhost:8002` |
+| Agent Service | `http://localhost:8003` |
+| Redis | `redis://localhost:6379` |
 
 ## Supported Agents
 
@@ -193,7 +263,17 @@ The frontend includes an artifact sidebar for generated code. It supports:
 - Preview tab for rendered HTML apps
 - Code tab for source code
 - Sandboxed iframe rendering with `srcDoc`
-- Calculator/MEA calculator artifact fallback for previewable examples
+- Todo, calculator, and MEA calculator artifact fallbacks for previewable examples
+- Conversation-aware artifact display, so artifacts from one chat do not appear in another chat
+
+Artifact storage behavior:
+
+- MongoDB stores the user and assistant messages.
+- Redux stores the currently active artifact UI state.
+- The iframe preview renders from `activeArtifact.preview` using `srcDoc`.
+- Artifact state is not stored in a separate database collection.
+- On conversation reload, the frontend recreates previewable artifacts from saved messages when possible.
+- Generated apps may use browser `localStorage` internally, for example the todo app stores its own tasks there.
 
 ## Prerequisites
 
@@ -262,33 +342,9 @@ GROQ_API_KEY=your_groq_api_key
 TAVILY_API_KEY=your_tavily_api_key
 ```
 
-## Installation
-
-Install dependencies for each package:
-
-```bash
-cd Backend
-npm install
-
-cd Gateway
-npm install
-
-cd ../Services/Auth
-npm install
-
-cd ../Chat
-npm install
-
-cd ../Agent
-npm install
-
-cd ../../../Frontend
-npm install
-```
-
 ## Running Locally
 
-Start Redis:
+After installing dependencies and creating `.env` files, start Redis:
 
 ```bash
 cd Backend
@@ -329,6 +385,15 @@ Open the Vite URL shown in the terminal, usually:
 ```text
 http://localhost:5173
 ```
+
+Startup order that avoids most connection issues:
+
+1. Redis
+2. Auth Service
+3. Chat Service
+4. Agent Service
+5. Gateway
+6. Frontend
 
 ## API Overview
 
