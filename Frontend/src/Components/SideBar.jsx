@@ -68,13 +68,6 @@ function SideBar() {
         >
           <PanelRight />
         </button>
-
-        <button
-          className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.03] text-slate-500 transition-all duration-150 hover:border-cyan-400/20 hover:bg-white/[0.07] hover:text-slate-200"
-          onClick={handleCreateConversation}
-        >
-          <Plus size={17} />
-        </button>
         <div className="flex-1 overflow-y-auto px-2.5 pb-2 [scroll-width:none] [&::-webkit-scrollbar]:hidden pt-10">
           {conversations.map((conv) => {
             const isActive = selectedConversation?._id === conv?._id;

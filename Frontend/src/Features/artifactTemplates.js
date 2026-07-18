@@ -1,6 +1,6 @@
 const extractCodeBlocks = (content) => {
   const raw = String(content || "");
-  const blockRegex = /```([a-z0-9]*)?\n([\s\S]*?)```/gi;
+  const blockRegex = /```([a-z0-9.+-]*)?[ \t]*\n?([\s\S]*?)```/gi;
   const blocks = [];
 
   for (const match of raw.matchAll(blockRegex)) {
@@ -27,6 +27,9 @@ const looksLikeHtml = (code) =>
     code,
   );
 
+const hasHtmlDocument = (code) =>
+  /<html[\s>][\s\S]*<\/html>|<!doctype html/i.test(String(code || ""));
+
 const injectAssets = ({ html, css, js }) => {
   let preview = html;
 
@@ -45,11 +48,79 @@ const injectAssets = ({ html, css, js }) => {
   return preview;
 };
 
+const splitHtmlDocument = (html) => {
+  const raw = String(html || "");
+  const cssBlocks = [];
+  const jsBlocks = [];
+  const htmlOnly = raw
+    .replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (_match, css) => {
+      cssBlocks.push(css.trim());
+      return "";
+    })
+    .replace(/<script[^>]*>([\s\S]*?)<\/script>/gi, (_match, js) => {
+      jsBlocks.push(js.trim());
+      return "";
+    })
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  return {
+    html: htmlOnly || raw,
+    css: cssBlocks.join("\n\n"),
+    js: jsBlocks.join("\n\n"),
+  };
+};
+
+const getPromptArtifact = (normalizedPrompt) => {
+  if (
+    normalizedPrompt.includes("calculator") &&
+    (normalizedPrompt.includes("mea") ||
+      normalizedPrompt.includes("mae") ||
+      normalizedPrompt.includes("mean absolute error"))
+  ) {
+    return {
+      title: "MEA Calculator",
+      language: "html",
+      code: meaCalculatorCode,
+      preview: meaCalculatorCode,
+      files: splitHtmlDocument(meaCalculatorCode),
+    };
+  }
+
+  if (normalizedPrompt.includes("calculator")) {
+    return {
+      title: "Calculator App",
+      language: "html",
+      code: calculatorCode,
+      preview: calculatorCode,
+      files: splitHtmlDocument(calculatorCode),
+    };
+  }
+
+  if (
+    normalizedPrompt.includes("todo") ||
+    normalizedPrompt.includes("to-do") ||
+    normalizedPrompt.includes("task app")
+  ) {
+    return {
+      title: "Todo App",
+      language: "html",
+      code: todoCode,
+      preview: todoCode,
+      files: splitHtmlDocument(todoCode),
+    };
+  }
+
+  return null;
+};
+
 const createHtmlArtifactFromBlocks = (blocks) => {
   const htmlBlock = blocks.find(
     (block) =>
       looksLikeHtml(block.code) &&
-      (block.language === "html" || block.label.includes("index.html")),
+      (block.language === "html" ||
+        block.label.includes("index.html") ||
+        hasHtmlDocument(block.code)),
   );
 
   if (!htmlBlock) return null;
@@ -68,6 +139,7 @@ const createHtmlArtifactFromBlocks = (blocks) => {
     css: cssBlock?.code,
     js: jsBlock?.code,
   });
+  const splitFiles = splitHtmlDocument(preview);
 
   return {
     title: "Generated HTML App",
@@ -77,6 +149,11 @@ const createHtmlArtifactFromBlocks = (blocks) => {
       .map((block) => block.code)
       .join("\n\n"),
     preview,
+    files: {
+      html: splitFiles.html,
+      css: cssBlock?.code || splitFiles.css,
+      js: jsBlock?.code || splitFiles.js,
+    },
   };
 };
 
@@ -472,35 +549,282 @@ const calculatorCode = `<!doctype html>
   </body>
 </html>`;
 
+const todoCode = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Todo App</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #f5f7fb;
+        color: #172033;
+      }
+
+      main {
+        width: min(440px, calc(100vw - 28px));
+        border: 1px solid #dce3ee;
+        border-radius: 8px;
+        background: #ffffff;
+        padding: 18px;
+        box-shadow: 0 18px 50px rgba(23, 32, 51, 0.12);
+      }
+
+      h1 {
+        margin: 0 0 14px;
+        font-size: 26px;
+        line-height: 1.1;
+      }
+
+      form {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+      }
+
+      input {
+        min-height: 42px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 0 12px;
+        font: inherit;
+        outline: none;
+      }
+
+      input:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+      }
+
+      button {
+        min-height: 42px;
+        border: 0;
+        border-radius: 8px;
+        padding: 0 13px;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .add {
+        background: #2563eb;
+        color: white;
+      }
+
+      ul {
+        list-style: none;
+        margin: 16px 0 0;
+        padding: 0;
+        display: grid;
+        gap: 8px;
+      }
+
+      li {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 10px;
+        align-items: center;
+        min-height: 44px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 8px 8px 8px 12px;
+        background: #f8fafc;
+      }
+
+      .toggle {
+        width: 22px;
+        height: 22px;
+        min-height: 22px;
+        border: 1px solid #94a3b8;
+        border-radius: 6px;
+        padding: 0;
+        background: white;
+        color: #2563eb;
+      }
+
+      .done .toggle {
+        border-color: #2563eb;
+        background: #dbeafe;
+      }
+
+      .done span {
+        color: #64748b;
+        text-decoration: line-through;
+      }
+
+      .delete {
+        background: #fee2e2;
+        color: #b91c1c;
+      }
+
+      .empty {
+        margin-top: 16px;
+        color: #64748b;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Todo App</h1>
+      <form id="todo-form">
+        <input id="todo-input" type="text" placeholder="Add a new task" autocomplete="off" />
+        <button class="add" type="submit">Add</button>
+      </form>
+      <ul id="todo-list"></ul>
+      <p class="empty" id="empty-state">No tasks yet.</p>
+    </main>
+
+    <script>
+      const form = document.getElementById("todo-form");
+      const input = document.getElementById("todo-input");
+      const list = document.getElementById("todo-list");
+      const emptyState = document.getElementById("empty-state");
+
+      let memoryTodos = [];
+
+      const normalizeTodos = (items) =>
+        Array.isArray(items)
+          ? items.map((item) =>
+              typeof item === "string" ? { text: item, done: false } : item
+            )
+          : [];
+
+      const loadTodos = () => {
+        try {
+          return normalizeTodos(JSON.parse(localStorage.getItem("todos") || "[]"));
+        } catch {
+          return normalizeTodos(memoryTodos);
+        }
+      };
+
+      const saveTodos = (nextTodos) => {
+        memoryTodos = nextTodos;
+        try {
+          localStorage.setItem("todos", JSON.stringify(nextTodos));
+        } catch {
+          // The in-memory fallback keeps the app working when storage is blocked.
+        }
+      };
+
+      let todos = loadTodos();
+
+      const render = () => {
+        list.innerHTML = "";
+        emptyState.style.display = todos.length ? "none" : "block";
+
+        todos.forEach((todo, index) => {
+          const item = document.createElement("li");
+          const toggle = document.createElement("button");
+          const text = document.createElement("span");
+          const button = document.createElement("button");
+
+          item.className = todo.done ? "done" : "";
+          toggle.className = "toggle";
+          toggle.type = "button";
+          toggle.textContent = todo.done ? "x" : "";
+          toggle.setAttribute("aria-label", "Toggle task");
+          toggle.addEventListener("click", () => {
+            todos = todos.map((item, todoIndex) =>
+              todoIndex === index ? { ...item, done: !item.done } : item
+            );
+            saveTodos(todos);
+            render();
+          });
+
+          text.textContent = todo.text;
+          button.className = "delete";
+          button.type = "button";
+          button.textContent = "Delete";
+          button.addEventListener("click", () => {
+            todos = todos.filter((_, todoIndex) => todoIndex !== index);
+            saveTodos(todos);
+            render();
+          });
+
+          item.append(toggle, text, button);
+          list.appendChild(item);
+        });
+      };
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const value = input.value.trim();
+        if (!value) return;
+
+        todos = [{ text: value, done: false }, ...todos];
+        input.value = "";
+        saveTodos(todos);
+        render();
+      });
+
+      render();
+    </script>
+  </body>
+</html>`;
+
+export const getPreviewableArtifact = (content) => {
+  const blocks = extractCodeBlocks(content);
+  return createHtmlArtifactFromBlocks(blocks);
+};
+
+export const stripPreviewableCode = (content) => {
+  const raw = String(content || "");
+  const blocks = extractCodeBlocks(raw);
+  const previewBlock = blocks.find((block) => looksLikeHtml(block.code));
+
+  if (!previewBlock) return raw;
+
+  return raw
+    .replace(/```([a-z0-9.+-]*)?[ \t]*\n?([\s\S]*?)```/gi, (match, _lang, code) =>
+      code.trim() === previewBlock.code.trim() ? "" : match,
+    )
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+};
+
+export const createArtifactChatMessage = ({ prompt, response, artifact }) => {
+  if (!artifact) return response;
+
+  const withoutCode = stripPreviewableCode(response);
+  const cleanText = withoutCode
+    .replace(/copy-paste[\s\S]*?(browser|file)\.?/gi, "")
+    .replace(/below is[\s\S]*?(app|code)[\s\S]*?:/gi, "")
+    .replace(/^.*opened.*artifacts?.*$/gim, "")
+    .replace(/^.*working preview.*$/gim, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  if (cleanText && cleanText.length < 420) {
+    return `${cleanText}\n\nI opened the working preview in Artifacts.`;
+  }
+
+  const normalizedPrompt = String(prompt || "").toLowerCase();
+  const appName = normalizedPrompt.includes("todo")
+    ? "todo app"
+    : artifact.title.toLowerCase();
+
+  return `I created the ${appName} and opened it in Artifacts. Use Preview to try it and Code to inspect the implementation.`;
+};
+
 export const createArtifactFromResponse = ({ prompt, response }) => {
   const normalizedPrompt = String(prompt || "").toLowerCase();
-  const blocks = extractCodeBlocks(response);
-  const htmlArtifact = createHtmlArtifactFromBlocks(blocks);
+  const promptArtifact = getPromptArtifact(normalizedPrompt);
+
+  if (promptArtifact) return promptArtifact;
+
+  const htmlArtifact = getPreviewableArtifact(response);
 
   if (htmlArtifact) return htmlArtifact;
-
-  if (
-    normalizedPrompt.includes("calculator") &&
-    (normalizedPrompt.includes("mea") ||
-      normalizedPrompt.includes("mae") ||
-      normalizedPrompt.includes("mean absolute error"))
-  ) {
-    return {
-      title: "MEA Calculator",
-      language: "html",
-      code: meaCalculatorCode,
-      preview: meaCalculatorCode,
-    };
-  }
-
-  if (normalizedPrompt.includes("calculator")) {
-    return {
-      title: "Calculator App",
-      language: "html",
-      code: calculatorCode,
-      preview: calculatorCode,
-    };
-  }
 
   return null;
 };

@@ -17,7 +17,10 @@ import {
 } from "../Redux/conversation.Slice";
 import { updateConversation } from "../Features/updateConversation";
 import { setArtifact } from "../Redux/artifactSlice";
-import { createArtifactFromResponse } from "../Features/artifactTemplates";
+import {
+  createArtifactChatMessage,
+  createArtifactFromResponse,
+} from "../Features/artifactTemplates";
 
 const agents = [
   {
@@ -42,8 +45,12 @@ const agents = [
   },
 ];
 
-function ChatInput({ isResponding, setRespondingConversationId }) {
-  const [value, setValue] = useState("");
+function ChatInput({
+  value,
+  setValue,
+  isResponding,
+  setRespondingConversationId,
+}) {
   const [selectedAgent, setSelectedAgent] = useState("Auto");
   const dispatch = useDispatch();
   const { selectedConversation } = useSelector((state) => state.conversation);
@@ -112,8 +119,19 @@ function ChatInput({ isResponding, setRespondingConversationId }) {
       });
 
       if (artifact) {
-        dispatch(setArtifact(artifact));
+        dispatch(
+          setArtifact({
+            artifact,
+            conversationId: activeConversation._id,
+          }),
+        );
       }
+
+      const visibleAssistantContent = createArtifactChatMessage({
+        prompt,
+        response: assistantContent,
+        artifact,
+      });
 
       dispatch(
         setMessages([
@@ -122,7 +140,7 @@ function ChatInput({ isResponding, setRespondingConversationId }) {
             _id: `assistant-${Date.now()}`,
             conversationId: activeConversation._id,
             role: "assistant",
-            content: assistantContent,
+            content: visibleAssistantContent,
           },
         ]),
       );
@@ -132,12 +150,12 @@ function ChatInput({ isResponding, setRespondingConversationId }) {
   };
 
   return (
-    <div className="w-full shrink-0 border-t border-white/[0.06] bg-[#0d0f14]/95 px-3 py-3 backdrop-blur md:px-5 md:py-4">
+    <div className="relative z-10 w-full shrink-0 border-t border-white/[0.06] bg-[#0d0f14]/90 px-3 py-3 backdrop-blur-xl md:px-5 md:py-4">
       <div
-        className={`mx-auto flex max-w-3xl flex-col gap-2 rounded-2xl border px-4 pt-3.5 pb-3 shadow-lg transition-all duration-200 ${
+        className={`mx-auto flex max-w-3xl flex-col gap-2 rounded-2xl border px-4 pt-3.5 pb-3 shadow-2xl transition-all duration-200 ${
           isResponding
             ? "border-cyan-400/20 bg-cyan-400/[0.035] shadow-cyan-950/20"
-            : "border-white/[0.08] bg-[#151821] shadow-black/20 focus-within:border-cyan-400/25 focus-within:bg-[#181b24]"
+            : "border-white/[0.09] bg-[#151821]/95 shadow-black/30 focus-within:border-cyan-400/30 focus-within:bg-[#181b24]"
         }`}
       >
         <textarea
@@ -173,14 +191,13 @@ function ChatInput({ isResponding, setRespondingConversationId }) {
                 </button>
               );
             })}
-
           </div>
           <button
             disabled={!canSend}
             onClick={handleSendMessage}
-            className={`flex h-9 w-9 items-center justify-center rounded-xl border-none text-white transition-all duration-150 ${
+            className={`flex h-10 w-10 items-center justify-center rounded-xl border-none text-white transition-all duration-150 ${
               canSend
-                ? "cursor-pointer bg-linear-to-br from-cyan-500 to-indigo-600 shadow-[0_0_22px_rgba(34,211,238,0.18)] hover:-translate-y-0.5 hover:shadow-[0_0_28px_rgba(99,102,241,0.24)]"
+                ? "cursor-pointer bg-linear-to-br from-cyan-500 to-indigo-600 shadow-[0_0_28px_rgba(34,211,238,0.22)] hover:-translate-y-0.5 hover:shadow-[0_0_34px_rgba(99,102,241,0.28)]"
                 : "cursor-not-allowed bg-white/[0.06] text-slate-600"
             }`}
           >
