@@ -1,0 +1,66 @@
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+
+  auth:
+    build:
+      context: .
+      dockerfile: Services/Auth/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - Services/Auth/.env
+    environment:
+      REDIS_URL: redis://redis:6379
+    volumes:
+      - ./Services/Auth/serviceAccountKey.json:/app/Services/Auth/serviceAccountKey.json:ro
+    depends_on:
+      - redis
+
+  chat:
+    build:
+      context: .
+      dockerfile: Services/Chat/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - Services/Chat/.env
+
+  agent:
+    build:
+      context: .
+      dockerfile: Services/Agent/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - Services/Agent/.env
+    environment:
+      CHAT_SERVICE: http://chat:8002
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - redis
+      - chat
+
+  gateway:
+    build:
+      context: .
+      dockerfile: Gateway/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - Gateway/.env
+    environment:
+      AUTH_SERVICE: http://auth:8001
+      CHAT_SERVICE: http://chat:8002
+      AGENT_SERVICE: http://agent:8003
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+      - auth
+      - chat
+      - agent
+
+volumes:
+  redis-data:
